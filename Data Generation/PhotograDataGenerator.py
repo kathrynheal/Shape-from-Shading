@@ -2,11 +2,11 @@
 
 
 
-## THIS IS MEANT TO FEED INTO CVPR_FIGURES.PY
+## THIS IS MEANT TO FEED INTO EVALUATE.PY
 
 
 import matplotlib, ast, sys, time, os, socket, warnings
-from Utilities  import *
+from Utilities3 import *
 from Utilities2 import *
 sys.path.append('/Users/Heal/Dropbox/Research/Experiments/NN/')
 from HelperFunctions import *
@@ -61,7 +61,7 @@ fig.colorbar(ntlim, ax=axs[1], shrink=0.5)
 #axs[1].title.set_text('NtL (Image w/o albedo)')
 #fig.colorbar(ntlim, ax=axs[1], shrink=0.5)
 
-fig, axs = plt.subplots(1,5, sharey=True, tight_layout=True)
+fig,axs = plt.subplots(1,5, sharey=True, tight_layout=True,figsize=(15,5))
 labels = ["a","b","c","d","e"]
 for i in [0,1,2,3,4]:
     imi = axs[i].imshow(gdZ[i],origin='lower')
@@ -70,12 +70,6 @@ for i in [0,1,2,3,4]:
 
 #plt.show()
 ##
-
-
-
-
-
-
 
 fig, axs = plt.subplots(2,2, sharey=True, tight_layout=True)
 imi = axs[0,0].imshow(gdZ[0],origin='lower',vmin=-3,vmax=3)

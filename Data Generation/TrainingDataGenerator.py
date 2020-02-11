@@ -2,10 +2,10 @@
 
 
 ## this is a barebones generator that does the important parts of GenerateTrainData.nb
-## THIS IS MEANT TO FEED INTO PARALLELOS.PY
+## THIS IS MEANT TO FEED INTO TRAINING.PY
 
 import matplotlib, ast, sys, time, os, socket, warnings
-from Utilities  import *
+from Utilities3 import *
 from Utilities2 import *
 sys.path.append('/Users/Heal/Dropbox/Research/Experiments/NN/')
 from HelperFunctions import *

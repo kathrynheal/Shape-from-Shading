@@ -1,7 +1,5 @@
 
-
-
-## is the analog to Utilities2.m but for TrainingDataGenerator.py
+## Called by TrainingDataGenerator.py
 
 
 import matplotlib, ast, sys, time, os, socket, warnings

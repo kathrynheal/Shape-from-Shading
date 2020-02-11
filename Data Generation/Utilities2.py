@@ -1,7 +1,5 @@
 
-
-
-## is the analog to Utilities2.m but for PhotograDataGenerator.py and SynthDataGenerator.py
+## Called by PhotograDataGenerator.py and SynthDataGenerator.py
 
 
 import matplotlib, ast, sys, time, os, socket, warnings
