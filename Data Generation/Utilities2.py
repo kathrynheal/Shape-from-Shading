@@ -41,7 +41,7 @@ def gaussD(im,ord,bnd): #im is a SQUARE matrix. ord is 5 or 6.
     
     
     
-    sig = 4
+    sig = 1
     
     
     
