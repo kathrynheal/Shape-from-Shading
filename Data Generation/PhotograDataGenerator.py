@@ -184,21 +184,22 @@ if PlotsOn:
         fig.colorbar(ntlim, ax=axs[i-1,1], shrink=0.5)
         
 if PlotsOn2:
-    sigs = [1,3]#,5,7]
+    sigs = [1,3,5,7]
     gdNtLmult = [gaussD(NtL,6,patwid,s,scl) for s in sigs] #if diff sigmas on NtL
     fig, axs = plt.subplots(6,1+len(sigs), sharey=True, tight_layout=True,figsize=(7,7))
+    viewsz = .00035
     for i in range(6): #for the derivative order
         if i==0:
             axs[i,0].title.set_text('analytic')
             nim = axs[i,0].imshow(sImat[i],origin='lower',cmap='gray',vmin= 0,vmax=1)
         else:
-            nim = axs[i,0].imshow(sImat[i],origin='lower',cmap='gray',vmin= -.0035,vmax=.0035)
+            nim = axs[i,0].imshow(sImat[i],origin='lower',cmap='gray',vmin= -viewsz,vmax=viewsz)
         for j in range(len(sigs)): #for the sigma value
             if i==0:
                 axs[i,j+1].title.set_text('sigma='+str(j))
                 ntlim=axs[i,j+1].imshow(gdNtLmult[j][i],origin='lower',cmap='gray',vmin= 0,vmax= 1)
             else:
-                ntlim=axs[i,j+1].imshow(gdNtLmult[j][i],origin='lower',cmap='gray',vmin= -.0035,vmax= .0035)
+                ntlim=axs[i,j+1].imshow(gdNtLmult[j][i],origin='lower',cmap='gray',vmin= -viewsz,vmax= viewsz)
             #if j==len(sigs)-1:
             #    fig.colorbar(ntlim, ax=axs[i,j+1], shrink=0.5)
 
