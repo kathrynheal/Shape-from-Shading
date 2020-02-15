@@ -393,6 +393,11 @@ def plotquadI(a):
 def getT(bI):
     Ix,Iy = bI[1],bI[2]
     tsol = -1j * np.log((Ix - 1j*Iy) / np.sqrt(Ix**2 + Iy**2))
+    
+#    with np.printoptions(precision=3, suppress=True):
+#        print("\n",tsol,"\n",Ix,Iy)
+#        print("sign tilde Iyy should be:", bI[1]**2*bI[5] - 2*bI[4]*bI[1]*bI[2] + bI[2]**2*bI[3])
+        
     return tsol
 
 def rotateit(bI,bp,t):    #got this from Utilities2.py's RotateIVecAndPoints function
@@ -461,10 +466,8 @@ def exploit_symmetries(real_I,real_f,info=[],verbose=False):
 
         ##rotate to make Iy=0,Ix>0.
         real_t = getT(real_I0)
-#        print("I ",real_I0.shape)
-#        print("F ",real_f0.shape)
         real_I0,real_f0 = rotateit(real_I0.reshape(1,-1), real_f0.reshape(1,-1), real_t)
-        real_I0,real_f0 = np.real(real_I0[0]),np.real(real_f0[0])
+        real_I0,real_f0 = real_I0.ravel(),real_f0.ravel()
         if verbose:
             print("satisfies KZs 2:     ", np.round(evalKZs(real_I0, real_f0),15))
         
@@ -478,8 +481,6 @@ def exploit_symmetries(real_I,real_f,info=[],verbose=False):
         info = initI,real_t,sc1,sc2 #data that allows one to decompress later
     
     return np.array(real_I0),np.array(real_f0),info
-
-
 
 
 def inv_exploit_symmetries(real_I0,real_f0,info,verbose=False):

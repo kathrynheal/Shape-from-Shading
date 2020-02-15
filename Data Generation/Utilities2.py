@@ -36,19 +36,11 @@ def getINumer(imf,l): #imf should be 5 x imsize x imsize
     Ivec = [[np.dot(n[:,i,j],l) for j in range(n.shape[2])] for i in range(n.shape[1])]
     return np.asarray(Ivec)
 
-def gaussD(im,ord,bnd): #im is a SQUARE matrix. ord is 5 or 6.
-    
-    
-    
-    
-    sig = 1
-    
-    
+def gaussD(im,ord,bnd,sig,scl): #im is a SQUARE matrix. ord is 5 or 6.
     
     
     m = 'mirror'
-    scl = (len(im)-1)/(2*bnd)
-    print("scl is: ",scl)
+    #print("scl is: ",scl)
     #first axis here is the matrix row#, so it's "y"
     #second axis here is the matrix col#, so it's "x"
     dx  = scl*gaussian_filter(im,sigma=sig,order=(0,1),mode=m)
@@ -59,4 +51,3 @@ def gaussD(im,ord,bnd): #im is a SQUARE matrix. ord is 5 or 6.
     if ord==6:
         return np.asarray((im,dx,dy,dxx,dxy,dyy)) 
     return np.asarray((dx,dy,dxx,dxy,dyy))
-    

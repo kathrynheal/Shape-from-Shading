@@ -59,8 +59,8 @@ def symbI(L, ab, cde ):
     #this comes from the CalcIFromABCDE in Utilities2.nb
 
     L1,L2,L3 = L
-    a,b = ab
-    c,d,e = cde
+    a,b = -ab
+    c,d,e = -cde
     
     Iout = (
     (-(a*L1) - b*L2 + L3)/(np.sqrt(1 + a**2 + b**2)*np.sqrt(L1**2 + L2**2 + L3**2)), ##
@@ -83,3 +83,7 @@ def calcIFromABCDE(L,ab,cde,px):
 
     
     
+def ItoTIyy(bI): #bI is (possibly multiple) 6-vectors
+    if len(bI.ravel())==6:
+        return bI[1]**2*bI[5] - 2*bI[4]*bI[1]*bI[2] + bI[2]**2*bI[3]     
+    return bI[1]**2*bI[5] - 2*bI[4]*bI[1]*bI[2] + bI[2]**2*bI[3]
