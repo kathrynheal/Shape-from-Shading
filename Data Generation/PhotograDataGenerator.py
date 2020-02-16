@@ -53,7 +53,7 @@ patchx,patchy = np.meshgrid(subset,subset) #each is patchsz x patchsz
 alldata = loadmat(datafname)
 Z =  alldata['Z'][patchx,patchy]
 N =  alldata['n'][patchx,patchy]        #unit-length vectors
-L =  alldata['L'][:,13]                  #to negate or not to negate???
+L =  alldata['L'][:,4]                  #to negate or not to negate???
 
 
 
@@ -71,6 +71,7 @@ N[:,:,(1,0)] = -N[:,:,(0,1)] #Ying's convention is y,x and negative
 Na,  Nb      =  scl*N[:,:,0]/N[:,:,2],  scl*N[:,:,1]/N[:,:,2]
 normz = np.sqrt(Na**2+Nb**2+1)
 Nab1 = np.transpose(np.asarray([Na/normz,Nb/normz,np.ones(Na.shape)/normz]),(1,2,0))
+gdZab1 = np.transpose(np.asarray([gdZ[0],gdZ[1]/normz,np.ones(Na.shape)]),(1,2,0))
 
 if PlotsOn:
     fig, axs = plt.subplots(2,2, sharey=True, tight_layout=True)
@@ -91,10 +92,6 @@ if PlotsOn:
 
 #### SANITY CHECK: does our image NtL match Ying's I?
 NtL = np.dot(Nab1,L) ## n is not normalized
-###NtL=-(N[:,:,0]*L[0,0] + N[:,:,1]*L[1,0] - N[:,:,2]*L[2,0])/N[:,:,2]
-#print("Ying's N dot Ying's L:\n",NtL)
-
-
 if PlotsOn:
     fig, axs = plt.subplots(1,3, sharey=True, tight_layout=True, figsize=(15,5))
     
@@ -109,9 +106,8 @@ if PlotsOn:
     ntlim=axs[2].imshow( NtL ,origin='lower',cmap='gray')
     axs[2].title.set_text('NtL (Image w/o albedo)')
     fig.colorbar(ntlim, ax=axs[2], shrink=0.5)
-
-
-
+    
+    
 
 #### SANITY CHECK: do our surface derivatives look reasonable?
 if PlotsOn:
@@ -124,10 +120,8 @@ if PlotsOn:
 
 
 
-
 #### GET GAUSSIAN DERIVATIVES FOR IMAGE (GIVEN N MEASUREMENTS)
-gdNtL = gaussD(NtL,6,patwid,sig+3,scl)
-
+gdNtL = gaussD(NtL,6,patwid,sig,scl)
 if PlotsOn:#why the heck are we seeing negative tilde Iyy???
     fig = plt.figure()
     tIyy = ItoTIyy(gdNtL)
@@ -135,36 +129,34 @@ if PlotsOn:#why the heck are we seeing negative tilde Iyy???
     plt.title('Sign(tilde Iyy) for GD I')
     fig.colorbar(imIyy, shrink=0.5)
 
-#    fig = plt.figure()
-#    tIyy = gdNtL[0]
-#    imIyy = plt.imshow(np.sign(tIyy),origin='lower')
-#    plt.title('Sign(I): Yellow is +')
-#    fig.colorbar(imIyy, shrink=0.5)
-#
-#    fig = plt.figure()
-#    tIyy = gdNtL[1]**2*gdNtL[5] + gdNtL[2]**2*gdNtL[3]
-#    imIyy = plt.imshow(tIyy,origin='lower')
-#    plt.title('pos component: Yellow is +')
-#    fig.colorbar(imIyy, shrink=0.5)
-#
-#    fig = plt.figure()
-#    tIyy = - 2*gdNtL[4]*gdNtL[1]*gdNtL[2]
-#    imIyy = plt.imshow(tIyy,origin='lower')
-#    plt.title('neg component: Yellow is +')
-#    fig.colorbar(imIyy, shrink=0.5)
+    fig = plt.figure()
+    tIyy = gdNtL[0]
+    imIyy = plt.imshow(np.sign(tIyy),origin='lower')
+    plt.title('Sign(I): Yellow is +')
+    fig.colorbar(imIyy, shrink=0.5)
+
+    fig = plt.figure()
+    tIyy = gdNtL[1]**2*gdNtL[5] + gdNtL[2]**2*gdNtL[3]
+    imIyy = plt.imshow(tIyy,origin='lower')
+    plt.title('pos component: Yellow is +')
+    fig.colorbar(imIyy, shrink=0.5)
+
+    fig = plt.figure()
+    tIyy = - 2*gdNtL[4]*gdNtL[1]*gdNtL[2]
+    imIyy = plt.imshow(tIyy,origin='lower')
+    plt.title('neg component: Yellow is +')
+    fig.colorbar(imIyy, shrink=0.5)
+    
 
 
 #### GET ANALYTIC DERIVATIVES FOR IMAGE (GIVEN gdZ MEASUREMENTS)
 sImat = [[symbI( L ,gdZ[:2,i,j],gdZ[2:,i,j]) for j in range(patchsz)] for i in range(patchsz)]
-#sImat = [[symbI( L ,(-Na[i,j],-Nb[i,j]),gdZ[2:,i,j]) for j in range(patchsz)] for i in range(patchsz)]
 sImat = np.transpose(np.asarray(sImat),(2,0,1))
-
 #with np.printoptions(precision=3, suppress=True):
 #    sI = np.transpose(np.asarray(symbI( L ,gdZ[:2,:,100],gdZ[2:,:,100]))) #NEGATIVE L???
 #    print(np.sort(np.asarray([ItoTIyy(s) for s in sI])[sI[:,0]>0]))
 #    print("")
 #print("\n\nMy analytic N dot Ying's L:\n",sImat[0])
-
 if PlotsOn:
     fig, axs = plt.subplots(1,2, sharey=True, tight_layout=True)
     nim = axs[0].imshow(sImat[0],origin='lower',cmap='gray',vmin= -0.1,vmax= 1)
@@ -182,7 +174,6 @@ if PlotsOn:
         ntlim=axs[i-1,1].imshow(gdNtL[i],origin='lower',cmap='gray',vmin= -.0035,vmax= .0035)
         axs[i-1,1].title.set_text('to Gaussian derivative I'+str(i))
         fig.colorbar(ntlim, ax=axs[i-1,1], shrink=0.5)
-        
 if PlotsOn2:
     sigs = [1,3,5,7]
     gdNtLmult = [gaussD(NtL,6,patwid,s,scl) for s in sigs] #if diff sigmas on NtL
@@ -202,6 +193,8 @@ if PlotsOn2:
                 ntlim=axs[i,j+1].imshow(gdNtLmult[j][i],origin='lower',cmap='gray',vmin= -viewsz,vmax= viewsz)
             #if j==len(sigs)-1:
             #    fig.colorbar(ntlim, ax=axs[i,j+1], shrink=0.5)
+
+
 
 
 
