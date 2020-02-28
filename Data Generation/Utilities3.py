@@ -16,10 +16,10 @@ from scipy.optimize import NonlinearConstraint
 import multiprocessing as mp
 
 
-def evalKZs(cde,abIvec):
-    c,d,e = cde
-    a,b = abIvec[:2]
-    I0, Ix0, Iy0, Ixx0, Ixy0, Iyy0 = abIvec[2:]
+def evalKZs(fI):
+    c,d,e = fI[2:5]
+    a,b = fI[:2]
+    I0, Ix0, Iy0, Ixx0, Ixy0, Iyy0 = fI[5:]
     
     ##KZs evaluated at the origin (x,y)=(0,0):
     p1 = c**2*I0 + b**2*c**2*I0 - 2*a*b*c*d*I0 + d**2*I0 + a**2*d**2*I0 + 2*a*c*Ix0 + 2*a**3*c*Ix0 + 2*a*b**2*c*Ix0 + 2*b*d*Ix0 + 2*a**2*b*d*Ix0 + 2*b**3*d*Ix0 + Ixx0 + 2*a**2*Ixx0 + a**4*Ixx0 + 2*b**2*Ixx0 + 2*a**2*b**2*Ixx0 + b**4*Ixx0
@@ -59,20 +59,25 @@ def symbI(L, ab, cde ):
     #this comes from the CalcIFromABCDE in Utilities2.nb
 
     L1,L2,L3 = L
-    a,b = -ab
-    c,d,e = -cde
+    a,b   = ab
+    c,d,e = cde
     
-    Iout = (
-    (-(a*L1) - b*L2 + L3)/(np.sqrt(1 + a**2 + b**2)*np.sqrt(L1**2 + L2**2 + L3**2)), ##
-    (-(c*(L1 + b**2*L1 - a*b*L2 + a*L3)) - d*(-(a*b*L1) + L2 + a**2*L2 + b*L3))/ ((1 + a**2 + b**2)**(3/2)*np.sqrt(L1**2 + L2**2 + L3**2)), ##
-    (-(d*(L1 + b**2*L1 - a*b*L2 + a*L3)) - e*(-(a*b*L1) + L2 + a**2*L2 + b*L3))/ ((1 + a**2 + b**2)**(3/2)*np.sqrt(L1**2 + L2**2 + L3**2)), ##
-    (2*(b + b**3)*c*d*L1 + b*((1 + b**2)*c**2 + 3*d**2)*L2 + a**3*d*(d*L1 + 2*c*L2) - ((1 + b**2)*c**2 + (1 - 2*b**2)*d**2)*L3 - a**2*(b*(4*c*d*L1 + 2*c**2*L2 - 3*d**2*L2) + (-2*c**2 + d**2)*L3) + a*(3*(1 + b**2)*c**2*L1 + (1 - 2*b**2)*d**2*L1 + 2*c*d*(L2 - 2*b**2*L2 + 3*b*L3)))/((1 + a**2 + b**2)**(5/2)*np.sqrt(L1**2 + L2**2 + L3**2)), ##
-    ((b + b**3)*(d**2 + c*e)*L1 + b*d*(c + b**2*c + 3*e)*L2 + a**3*(d*e*L1 + d**2*L2 + c*e*L2) - d*(c + b**2*c + e - 2*b**2*e)*L3 - a**2*(2*b*(d**2 + c*e)*L1 + b*d*(2*c - 3*e)*L2 + d*(-2*c + e)*L3) + a*(3*(1 + b**2)*c*d*L1 - (-1 + 2*b**2)*d*(e*L1 + d*L2) + 3*b*d**2*L3 + c*e*(L2 - 2*b**2*L2 + 3*b*L3)))/((1 + a**2 + b**2)**(5/2)* np.sqrt(L1**2 + L2**2 + L3**2)), ##
-    (2*(b + b**3)*d*e*L1 + b*((1 + b**2)*d**2 + 3*e**2)*L2 + a**3*e*(e*L1 + 2*d*L2) - ((1 + b**2)*d**2 + (1 - 2*b**2)*e**2)*L3 - a**2*(b*(4*d*e*L1 + 2*d**2*L2 - 3*e**2*L2) + (-2*d**2 + e**2)*L3) + a*(3*(1 + b**2)*d**2*L1 + (1 - 2*b**2)*e**2*L1 + 2*d*e*(L2 - 2*b**2*L2 + 3*b*L3)))/ ((1 + a**2 + b**2)**(5/2)*np.sqrt(L1**2 + L2**2 + L3**2))
+    nf = 1/np.sqrt(1     + a**2  + b**2)
+    nl = 1/np.sqrt(L1**2 + L2**2 + L3**2)
+    denom = np.asarray([nf*nl, nf**3*nl, nf**3*nl, nf**5*nl, nf**5*nl, nf**5*nl])
+    numer =(
+    -a*L1 - b*L2 + L3,##
+    -(c*(L1 + b**2*L1 - a*b*L2 + a*L3)) - d*(-(a*b*L1) + L2 + a**2*L2 + b*L3),##
+    -(d*(L1 + b**2*L1 - a*b*L2 + a*L3)) - e*(-(a*b*L1) + L2 + a**2*L2 + b*L3),##
+    2*(b + b**3)*c*d*L1 + b*((1 + b**2)*c**2 + 3*d**2)*L2 + a**3*d*(d*L1 + 2*c*L2) - ((1 + b**2)*c**2 + (1 - 2*b**2)*d**2)*L3 -  a**2*(b*(4*c*d*L1 + 2*c**2*L2 - 3*d**2*L2) + (-2*c**2 + d**2)*L3) + a*(3*(1 + b**2)*c**2*L1 + (1 - 2*b**2)*d**2*L1 + 2*c*d*(L2 - 2*b**2*L2 + 3*b*L3)),##
+    (b + b**3)*(d**2 + c*e)*L1 + b*d*(c + b**2*c + 3*e)*L2 + a**3*(d*e*L1 + d**2*L2 + c*e*L2) - d*(c + b**2*c + e - 2*b**2*e)*L3 -     a**2*(2*b*(d**2 + c*e)*L1 + b*d*(2*c - 3*e)*L2 + d*(-2*c + e)*L3) + a*(3*(1 + b**2)*c*d*L1 - (-1 + 2*b**2)*d*(e*L1 + d*L2) + 3*b*d**2*L3 + c*e*(L2 - 2*b**2*L2 + 3*b*L3)),##
+    2*(b + b**3)*d*e*L1 + b*((1 + b**2)*d**2 + 3*e**2)*L2 + a**3*e*(e*L1 + 2*d*L2) - ((1 + b**2)*d**2 + (1 - 2*b**2)*e**2)*L3 -     a**2*(b*(4*d*e*L1 + 2*d**2*L2 - 3*e**2*L2) + (-2*d**2 + e**2)*L3) +     a*(3*(1 + b**2)*d**2*L1 + (1 - 2*b**2)*e**2*L1 + 2*d*e*(L2 - 2*b**2*L2 + 3*b*L3))##
     )
+    Iout = numer*denom
+    
     return Iout
-
-
+    
+    
 def calcIFromABCDE(L,ab,cde,px):
     if norm(px)!=0:
         print("not yet equipped to handle (x,y)!=(0,0).")
