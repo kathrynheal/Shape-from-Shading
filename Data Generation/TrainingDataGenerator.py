@@ -7,8 +7,8 @@
 import matplotlib, ast, sys, time, os, socket, warnings
 from Utilities3 import *
 from Utilities2 import *
-sys.path.append('/Users/Heal/Dropbox/Research/Experiments/NN/')
-from HelperFunctions import *
+sys.path.append('/Users/Heal/Dropbox/Research/Experiments/Git/')
+from Utilities1 import *
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
 import numpy as np
@@ -25,8 +25,8 @@ prefix = "~/Dropbox/Research/Experiments/"
 myuniquetime = ''.join([str(random.randint(0,9)) for i in range(6)])
 print(myuniquetime)
 
-nIvects = 500
-npoints = 50
+nIvects = 10
+npoints = 10
 
 ab   = sampS2p(nIvects)[:,:2]
 cde  = sampR3p(nIvects)
@@ -44,11 +44,19 @@ pool.close()
 
 Fvec = np.concatenate((np.asarray([abguess for i in range(nIvects)]),mycde),axis=2)
 Fvec = np.asarray([np.concatenate(f) for f in Fvec])
-#print(Fvec.shape) # nIvects x npoints*5, matrix
-#print(Ivec.shape) # nIvects x 6, matrix
+
+Cvec = np.asarray([[evalKZs(np.concatenate([Fvec[i,(5*j):(5*j+5)],Ivec[i]]),[]) for j in range(npoints)] for i in range(nIvects)]) #confidence scores
+
+print("Fvec shape: ",Fvec.shape) # nIvects x npoints*5,    matrix
+print("Ivec shape: ",Ivec.shape) # nIvects x 6,            matrix
+print("Cvec shape: ",Cvec.shape) # nIvects x npoints,      matrix
 
 np.savetxt("Data/F_"+myuniquetime+".csv", Fvec, delimiter=",")
 np.savetxt("Data/I_"+myuniquetime+".csv", Ivec, delimiter=",")
+np.savetxt("Data/C_"+myuniquetime+".csv", Cvec, delimiter=",")
+
+
+
 
 #print("\nMY CDE:    \n",mycde)
 #print("\nTRUE CDE:  \n",cde)

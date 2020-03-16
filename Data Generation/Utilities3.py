@@ -16,10 +16,18 @@ from scipy.optimize import NonlinearConstraint
 import multiprocessing as mp
 
 
-def evalKZs(fI):
-    c,d,e = fI[2:5]
-    a,b = fI[:2]
-    I0, Ix0, Iy0, Ixx0, Ixy0, Iyy0 = fI[5:]
+def evalKZs(fI,addargs=[]):
+    
+    if len(fI.ravel()) == 11: #this is for evaluation toward sanity checks
+        c,d,e = fI[2:5]
+        a,b = fI[:2]
+        I0, Ix0, Iy0, Ixx0, Ixy0, Iyy0 = fI[5:]
+    elif len(addargs.ravel()) == 8: #this is for optimization inside solveKZs
+        c,d,e = fI
+        a,b = addargs[:2]
+        I0, Ix0, Iy0, Ixx0, Ixy0, Iyy0 = addargs[2:]
+    else: #error case
+        print("Inappropriate input to function evalKZs.")
     
     ##KZs evaluated at the origin (x,y)=(0,0):
     p1 = c**2*I0 + b**2*c**2*I0 - 2*a*b*c*d*I0 + d**2*I0 + a**2*d**2*I0 + 2*a*c*Ix0 + 2*a**3*c*Ix0 + 2*a*b**2*c*Ix0 + 2*b*d*Ix0 + 2*a**2*b*d*Ix0 + 2*b**3*d*Ix0 + Ixx0 + 2*a**2*Ixx0 + a**4*Ixx0 + 2*b**2*Ixx0 + 2*a**2*b**2*Ixx0 + b**4*Ixx0

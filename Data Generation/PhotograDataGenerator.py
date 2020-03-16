@@ -210,6 +210,8 @@ TIyygdN = np.asarray([[ItoTIyy(gdNtL[:,i,j]) for j in range(patchsz)] for i in r
 
 
 
+
+
 ##troubleshooting statistics
 cubicnessf = FindThirdOrder(Z,gdZ,sig)[0]
 deviationI = gdNtL2[:,5]-sImat2[:,5]
