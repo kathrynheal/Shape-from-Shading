@@ -314,7 +314,7 @@ def getyings(f):
         return Yabcdes
     else:
         print("Ying failed because c=e.")
-        return 0
+        return np.matlib.repmat(0*f,4,1)
 
 def ispp(y): #can feed in only one y vector here, each of size 3
     return np.minimum(y[0]*y[2]-y[1]**2,y[0]+y[2])
@@ -323,7 +323,7 @@ def pponly(f): #feed in only a single f vector here, each of size 5
     all4 = getyings(f)
     msk1 = np.array([ispp(a4) for a4 in all4[:,2:]])
     ppo1 = all4[msk1 > 0]
-    return np.array(ppo1[0])
+    return np.array(ppo1[0]) if len(ppo1)>0 else 0*f
 
 
 ##load real data I-value and ground truth f-value.
@@ -428,13 +428,13 @@ def get_x(real_x,nbhd_sz,nbhd_gr):
     nbhd_x = np.transpose(np.array((a.flatten(), b.flatten())))
     return nbhd_x
 
-def evalKZs(Ivec,fvec):
-    a,b,c,d,e = fvec
-    I0, Ix0, Iy0, Ixx0, Ixy0, Iyy0 = Ivec
-    p1 = c**2*I0 + b**2*c**2*I0 - 2*a*b*c*d*I0 + d**2*I0 + a**2*d**2*I0 + 2*a*c*Ix0 + 2*a**3*c*Ix0 + 2*a*b**2*c*Ix0 + 2*b*d*Ix0 + 2*a**2*b*d*Ix0 + 2*b**3*d*Ix0 + Ixx0 + 2*a**2*Ixx0 + a**4*Ixx0 + 2*b**2*Ixx0 + 2*a**2*b**2*Ixx0 + b**4*Ixx0
-    p2 = d**2*I0 + b**2*d**2*I0 - 2*a*b*d*e*I0 + e**2*I0 + a**2*e**2*I0 + 2*a*d*Iy0 + 2*a**3*d*Iy0 + 2*a*b**2*d*Iy0 + 2*b*e*Iy0 + 2*a**2*b*e*Iy0 + 2*b**3*e*Iy0 + Iyy0 + 2*a**2*Iyy0 + a**4*Iyy0 + 2*b**2*Iyy0 + 2*a**2*b**2*Iyy0 + b**4*Iyy0
-    p3 = c*d*I0 + b**2*c*d*I0 - a*b*d**2*I0 - a*b*c*e*I0 + d*e*I0 + a**2*d*e*I0 + a*d*Ix0 + a**3*d*Ix0 + a*b**2*d*Ix0 + b*e*Ix0 + a**2*b*e*Ix0 + b**3*e*Ix0 + Ixy0 + 2*a**2*Ixy0 + a**4*Ixy0 + 2*b**2*Ixy0 + 2*a**2*b**2*Ixy0 + b**4*Ixy0 + a*c*Iy0 + a**3*c*Iy0 + a*b**2*c*Iy0 + b*d*Iy0 + a**2*b*d*Iy0 + b**3*d*Iy0
-    return p1,p2,p3
+#def evalKZs(Ivec,fvec):
+#    a,b,c,d,e = fvec
+#    I0, Ix0, Iy0, Ixx0, Ixy0, Iyy0 = Ivec
+#    p1 = c**2*I0 + b**2*c**2*I0 - 2*a*b*c*d*I0 + d**2*I0 + a**2*d**2*I0 + 2*a*c*Ix0 + 2*a**3*c*Ix0 + 2*a*b**2*c*Ix0 + 2*b*d*Ix0 + 2*a**2*b*d*Ix0 + 2*b**3*d*Ix0 + Ixx0 + 2*a**2*Ixx0 + a**4*Ixx0 + 2*b**2*Ixx0 + 2*a**2*b**2*Ixx0 + b**4*Ixx0
+#    p2 = d**2*I0 + b**2*d**2*I0 - 2*a*b*d*e*I0 + e**2*I0 + a**2*e**2*I0 + 2*a*d*Iy0 + 2*a**3*d*Iy0 + 2*a*b**2*d*Iy0 + 2*b*e*Iy0 + 2*a**2*b*e*Iy0 + 2*b**3*e*Iy0 + Iyy0 + 2*a**2*Iyy0 + a**4*Iyy0 + 2*b**2*Iyy0 + 2*a**2*b**2*Iyy0 + b**4*Iyy0
+#    p3 = c*d*I0 + b**2*c*d*I0 - a*b*d**2*I0 - a*b*c*e*I0 + d*e*I0 + a**2*d*e*I0 + a*d*Ix0 + a**3*d*Ix0 + a*b**2*d*Ix0 + b*e*Ix0 + a**2*b*e*Ix0 + b**3*e*Ix0 + Ixy0 + 2*a**2*Ixy0 + a**4*Ixy0 + 2*b**2*Ixy0 + 2*a**2*b**2*Ixy0 + b**4*Ixy0 + a*c*Iy0 + a**3*c*Iy0 + a*b**2*c*Iy0 + b*d*Iy0 + a**2*b*d*Iy0 + b**3*d*Iy0
+#    return p1,p2,p3
 
 #########################
 #########################
@@ -468,6 +468,7 @@ def exploit_symmetries(real_I,real_f,info=[],verbose=False):
         real_t = getT(real_I0)
         real_I0,real_f0 = rotateit(real_I0.reshape(1,-1), real_f0.reshape(1,-1), real_t)
         real_I0,real_f0 = real_I0.ravel(),real_f0.ravel()
+        real_I0rot = real_I0
         if verbose:
             print("satisfies KZs 2:     ", np.round(evalKZs(real_I0, real_f0),15))
         
@@ -507,3 +508,60 @@ def inv_exploit_symmetries(real_I0,real_f0,info,verbose=False):
         print("satisfies KZs 1:     ", np.round(evalKZs(real_I0, real_f0),15))
 
     return np.array(real_I0),np.array(real_f0)
+    
+
+def analytic_rot(I0,f0):
+    
+    I,Ix,Iy,Ixx,Ixy,Iyy = I0
+    fx,fy,fxx,fxy,fyy   = f0
+    
+    In = Ix**2+Iy**2
+    
+    I1 = \
+    ( I, np.sqrt(In), 0, \
+    ( Ix**2*Ixx + 2*Ix*Iy*Ixy + Iy**2*Iyy )/In, \
+    ( (Ix**2-Iy**2)*Ixy + Ix*Iy*(Iyy-Ixx) )/In, \
+    ( Ix**2*Iyy - 2*Ix*Iy*Ixy + Iy**2*Ixx )/In \
+    )
+    
+    f1 = ( \
+    (fx*Ix+fy*Iy)/np.sqrt(In), \
+    (fy*Ix-fx*Iy)/np.sqrt(In), \
+    ( fxx*Ix**2 + 2*fxy*Ix*Iy + fyy*Iy**2 )/In, \
+    ( fxy*(Ix**2-Iy**2) + (fyy-fxx)*Ix*Iy )/In, \
+    ( fyy*Ix**2 - 2*fxy*Ix*Iy + fxx*Iy**2 )/In \
+    )
+    
+    return I1,f1
+
+
+
+def set_unit(opt):
+
+    if opt==1:
+        Z   = (XX**3+YY**3)/1000
+        dZx = 3*XX**2/1000
+        dZy = 3*YY**2/1000
+        dZxx = 6*XX/1000
+        dZxy = 0*np.ones(XX.shape)
+        dZyy = 6*YY/1000
+    elif opt==2:
+        Z   = (XX**2+YY**2)/100
+        dZx = (2*XX)/100
+        dZy = (2*YY)/100
+        dZxx = 2*np.ones(XX.shape)/100
+        dZxy = 0*np.ones(XX.shape)
+        dZyy = 2*np.ones(XX.shape)/100
+    elif opt==3:
+        Z   = (XX+YY**2)/100
+        dZx = np.ones(XX.shape)/100
+        dZy = (2*YY)/100
+        dZxx = 0*np.ones(XX.shape)/100
+        dZxy = 0*np.ones(XX.shape)
+        dZyy = 2*np.ones(XX.shape)/100
+    
+    return Z,dZx,dZy,dZxx,dZxy,dZyy
+
+
+def valid(f): #mask out the NaNs -- set them to zero.
+    return np.nan_to_num(np.multiply(M, f))

@@ -41,7 +41,6 @@ def print2(on,dZx,dZy,dZxx,dZxy,dZyy,gdZ,UnitTest):
                 fig = plt.figure()
                 plt.plot(tryem[i][:,40],label="true")
                 plt.plot(gdZ[i][:,40],label="mine")
-#                print(tryem[i][:,40]/(gdZ[i][:,40]))
                 plt.title("How well does our GD get our surface derivs?")
                 plt.legend()
         else:
@@ -166,8 +165,8 @@ def print9(on,gdZ,sImat):
 
 ## the REAL 6x6 image plot.
 def print10(on,patchsz,sigs,sImat,gdNtLmult,viewsz):
-    cf = int((patchsz-1)/2 + 1 - 75)
-    ct = int((patchsz-1)/2 + 1 + 75)
+    cf = 1#int((patchsz-1)/2 + 1 - 75)
+    ct = -1#int((patchsz-1)/2 + 1 + 75)
     if on:
         fig, axs = plt.subplots(6,1+len(sigs), sharey=True, tight_layout=True,figsize=(7,7))
         for i in range(6): #for the derivative order
@@ -265,16 +264,31 @@ def print13(on,sIyymat,gdZ):
     
     
 ##helpers to 6x6 plot
-def print14(on,sImat):
+def print14(on,sImat,Ierr):
     if on:
-        fig, axs = plt.subplots(5,1, sharey=True, sharex=True, tight_layout=True,figsize=(4,8))
+        fig, axs = plt.subplots(6,1, sharey=True, sharex=True, tight_layout=True,figsize=(4,8))
         viewsz = 0.0035
        
         dIxy1,dIxx = np.gradient(sImat[1])
         dIyy,dIxy2 = np.gradient(sImat[2])
-        compareto = sImat[1],sImat[2],dIxx, dIxy1, dIyy
         
-        for i in [1,2,3,4,5]:
-            nim = axs[i-1].imshow(compareto[i-1],origin='lower',cmap='gray',vmin= -viewsz,vmax= viewsz)
-            axs[i-1].title.set_text('Compare analytic I'+str(i))
-            fig.colorbar(nim, ax=axs[i-1], shrink=0.5)
+#        compareto = sImat[1],sImat[2], dIxx, dIxy1, dIyy
+        compareto = sImat + Ierr
+        
+        for i in range(6):
+            nim = axs[i].imshow(compareto[i],origin='lower',cmap='gray',vmin= -viewsz,vmax= viewsz)
+            axs[i].title.set_text('analytic I'+str(i)+' + err')
+            fig.colorbar(nim, ax=axs[i], shrink=0.5)
+
+## show confidence plots (e.g. high cubicness areas)
+def print15(on,Ierr,viewsz):
+    viewsz /= 10
+    if on:
+      fig, axs = plt.subplots(1,3, sharey=True, tight_layout=True,figsize=(7,3))
+      fig.suptitle('Large Magnitudes denote Low Confidence', fontsize=16)
+      axs[0].imshow(Ierr[3], origin='lower',cmap='gray')
+      axs[0].title.set_text("Ixx err")
+      axs[1].imshow(Ierr[4], origin='lower',cmap='gray')
+      axs[1].title.set_text("Ixy err")
+      axs[2].imshow(Ierr[5], origin='lower',cmap='gray')
+      axs[2].title.set_text("Iyy err")

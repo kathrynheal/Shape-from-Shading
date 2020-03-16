@@ -55,6 +55,7 @@ def gragauss(sigma):
     dy = -y*(1/sigma**3)*G2*sc
     
     return dx,dy
+    
 
 def hesgauss(sigma):
     """Create Hessian-of-Gaussian kernels with standard deviation sigma.
@@ -127,9 +128,31 @@ def gaussD(im,ord,bnd,sig,scl): #im is a SQUARE matrix. ord is 5 or 6.
 
 def FindThirdOrder(im,dim,sig):
     fx,fy,fxx,fxy,fyy = dim
-    Gx, Gy = gragauss(sig)
-    dxxx, dxxy = ndi.convolve(fxx, Gx),  ndi.convolve(fxx, Gy)
-    dxyx, dxyy = ndi.convolve(fxy, Gx),  ndi.convolve(fxy, Gy)
-    dyyx, dyyy = ndi.convolve(fyy, Gx),  ndi.convolve(fyy, Gy)
+    if sig>0:
+        Gx, Gy = gragauss(sig+1)
+        dxxx, dxxy = ndi.convolve(fxx, Gx),  ndi.convolve(fxx, Gy)
+        dxyx, dxyy = ndi.convolve(fxy, Gx),  ndi.convolve(fxy, Gy)
+        dyyx, dyyy = ndi.convolve(fyy, Gx),  ndi.convolve(fyy, Gy)
+    else:
+        dxxy, dxxx  = np.gradient(fxx)
+        dxyy, dxyx  = np.gradient(fxy)
+        dyyy, dyyx  = np.gradient(fyy)
     stat = dxxx**2+dxxy**2+dxyy**2+dyyy**2
-    return stat
+    return stat, np.asarray([dxxx,dxxy,dxyy,dyyy])
+
+def GetCubicIError(L,surf):
+    #returns: Iquartic - Iquad, derived in "et cetera.nb"
+    l1,l2,l3 = L
+    if len(surf)==5:
+        a,b,c,d,e = surf
+        f,g,h,i = 0,0,0,0
+    elif len(surf)==9:
+        a,b,c,d,e,f,g,h,i = surf
+    else:
+        print("GetCubicIError: f is not of the right shape.")
+    var1 = l1 + b**2*l1 - a*b*l2 + a*l3
+    var2 = -(a*b*l1) + l2 + a**2*l2 + b*l3
+    var3 = -(1 + a**2 + b**2)**(3/2) * np.sqrt(l1**2 + l2**2 + l3**2)
+    z = np.zeros(var3.shape)
+    Ierr = np.asarray([ z, z, z, (f*var1+g*var2)/var3, (g*var1+h*var2)/var3, (h*var1+i*var2)/var3])
+    return Ierr

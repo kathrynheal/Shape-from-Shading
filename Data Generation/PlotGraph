@@ -1,0 +1,257 @@
+
+
+#crsync -urP Clust* heal@odyssey.rc.fas.harvard.edu:/n/home08/heal/EAK
+##inside the shell, call "exec(open("ClusteringExperiments.py").read())"
+
+#python ClusteringExperiments.py
+#in conjunction with ProcessAviData.nb
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=RuntimeWarning)
+
+import os, sys, scipy.io, scipy.linalg, time
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2' #don't display warnings; only errors
+import numpy as np, tensorflow as tf, matplotlib.pylab as plt
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+from util import clusteringResults, CNNClassifier
+from numpy import genfromtxt
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans, SpectralClustering
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn import svm
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
+from keras.utils import to_categorical
+from sklearn.metrics import confusion_matrix,roc_curve
+from keras.models import load_model
+from sklearn.pipeline import make_pipeline
+
+###########################################
+############LOADING DATA###################
+###########################################
+
+DataName='Avi';#'';
+IsNewData = True;
+PrintPCA  = False;
+TrainTest = .9;
+TestOnForeignSet = False;
+prefixTRAIN ='output_ForNNDataNB_given_4-monomial-complete-graph/'#'output_4-monomialCutGraph/train'
+prefixTEST  ='output_ForNNDataNB_given_5-monomial-m/'#'output_4-monomialCutGraph/test'
+
+if IsNewData:
+    #CSV data is generated from ForNNData.nb
+    all_x=genfromtxt(prefixTRAIN+DataName+'X.csv', delimiter=',',dtype='int')
+    all_y=genfromtxt(prefixTRAIN+DataName+'Y.csv', delimiter=',',dtype='float')
+    all_M=genfromtxt(prefixTRAIN+DataName+'Mdigits.csv', delimiter=',',dtype='int')
+    all_M = all_M.reshape(all_M.shape[0], 21, 21, 1) #hacky -- check this
+    print("size of M: ",all_M.shape)
+    all_y[all_y <  1000] = 1
+    all_y[all_y >= 1000] = 0
+    np.save(prefixTRAIN+DataName+'X.npy',all_x)
+    np.save(prefixTRAIN+DataName+'Y.npy',all_y)
+    np.save(prefixTRAIN+DataName+'Mdigits.npy',all_M)
+
+all_x = np.load(prefixTRAIN+DataName+'X.npy')
+all_y = np.load(prefixTRAIN+DataName+'Y.npy')
+all_M = np.load(prefixTRAIN+DataName+'Mdigits.npy')
+
+print("\n# failures in this dataset:",np.sum(all_y[all_y==0]+1))
+print("# successes in this dataset:",np.sum(all_y[all_y==1]))
+
+if TestOnForeignSet: #process prefixTEST dataset for test data
+    test_x=genfromtxt(prefixTEST+DataName+'X.csv', delimiter=',',dtype='int')
+    test_y=genfromtxt(prefixTEST+DataName+'Y.csv', delimiter=',',dtype='float')
+    test_M=genfromtxt(prefixTEST+DataName+'Mdigits.csv', delimiter=',',dtype='int')
+    test_y[test_y<1000]  = 1
+    test_y[test_y>=1000] = 0
+    np.save(prefixTEST+DataName+'X.npy',test_x)
+    np.save(prefixTEST+DataName+'Y.npy',test_y)
+    np.save(prefixTEST+DataName+'Mdigits.npy',test_M)
+    train_x = all_x
+    train_y = all_y
+    train_M = all_M
+else: #randomly selected indices to divide train from test
+    shuff_ints = np.random.permutation(all_x.shape[0])
+    tohere = np.round(all_x.shape[0]*TrainTest).astype('int')
+    train_ints = shuff_ints[:tohere]
+    test_ints = shuff_ints[tohere:]
+    np.save(prefixTRAIN+'CLUSTER_tra_ind',train_ints)
+    np.save(prefixTRAIN+'CLUSTER_tes_ind',test_ints)
+    train_x = all_x[train_ints.astype('int')];
+    test_x = all_x[test_ints.astype('int')];
+    train_y  = all_y[train_ints.astype('int')];
+    test_y = all_y[test_ints.astype('int')];
+    train_M  = all_M[train_ints.astype('int')];
+    test_M = all_M[test_ints.astype('int')];
+numtests = test_x.shape[0]
+
+###########################################
+############UNSUPERVISED###################
+###########################################
+
+# UNSUPERVISED: PRINCIPAL COMPONENT ANALYSIS. shows 16 top PCs.
+# Really, this is kind of cheating because we're doing PCA on the test set too, which isn't possible in practice. You want to be able to deploy your finished network on unseen inputs.
+k=20 #all_x.shape[1]#16#26#
+pca = PCA(n_components=k)
+pca.fit(all_x)
+if PrintPCA:
+    print(pca.explained_variance_ratio_)
+    print(pca.singular_values_)
+    plt.plot(pca.explained_variance_ratio_)
+    plt.title("Ratios of variances explained by Principal Components of Inputs")
+    plt.show()
+DRtrx = pca.transform(train_x) #dimension reduced by PCA. First k=35 comp proj.
+DRtex = pca.transform(test_x) #dimension reduced by PCA. First k=35 comp proj.
+
+##UNSUPERVISED: K MEANS CLUSTERING
+#KM = KMeans(n_clusters=2, random_state=0).fit(DRtrx)
+#yKM = KM.labels_
+##print("\nk-Means Clustering")
+##print("Confusion Matrix:\n",confusion_matrix(test_y,yKM))
+#err = clusteringResults(yKM,train_y,"K-MEANS CLUSTERING")
+#
+##UNSUPERVISED: SPECTRAL CLUSTERING
+#SC = SpectralClustering(n_clusters=2, assign_labels="discretize", random_state=0).fit(DRtrx)
+#ySC = SC.labels_
+##print("\nSpectral Clustering")
+##print("Confusion Matrix:\n",confusion_matrix(test_y,ySC))
+#err = clusteringResults(ySC,train_y,"SPECTRAL CLUSTERING")
+#
+###########################################
+#########CLASSICAL SUPERVISED##############
+###########################################
+#
+## SUPERVISED: LOGISTIC REGRESSION
+#LR = LogisticRegression(penalty='l2')
+#LR.fit(DRtrx, train_y)
+#yLR= LR.predict(DRtex);
+#pLR= LR.predict_proba(DRtex)[:,1]
+#print("\nLogistic Regression")
+#print("Confusion Matrix:\n",confusion_matrix(test_y,yLR))
+##err = clusteringResults(yLR,test_y,"LOGISTIC REGRESSION")
+##print("ROC curve",roc_curve(test_y, pLR))
+#
+## SUPERVISED: SUPPORT VECTOR MACHINE
+#SV = svm.SVC(kernel='linear',gamma='auto',probability=True);
+#SV.fit(DRtrx, train_y);
+#ySV= SV.predict(DRtex);
+#pSV= SV.predict_proba(DRtex)[:,1]
+#print("\nSVM")
+#print("Confusion Matrix:\n",confusion_matrix(test_y,ySV))
+##err = clusteringResults(ySV,test_y,"SUPPORT VECTOR MACHINE")
+#
+## SUPERVISED: GAUSSIAN KERNEL SVM
+#GS = svm.SVC(gamma=2, C=1,probability=True);
+#GS.fit(DRtrx, train_y);
+#yGS= GS.predict(DRtex);
+#pGS= GS.predict_proba(DRtex)[:,1]
+#print("\nGaussian Kernel SVM")
+#print("Confusion Matrix:\n",confusion_matrix(test_y,yGS))
+##err = clusteringResults(yGS,test_y,"GAUSSIAN KERNEL SVM")
+#
+## SUPERVISED: RANDOM FOREST
+#RF = RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1)
+#RF.fit(DRtrx, train_y);
+#yRF= RF.predict(DRtex);
+#pRF= RF.predict_proba(DRtex)[:,1]
+#print("\nRandom Forest")
+#print("Confusion Matrix:\n",confusion_matrix(test_y,yRF))
+##err = clusteringResults(yRF,test_y,"RANDOM FOREST")
+#
+## SUPERVISED: ADABOOST
+#AB = AdaBoostClassifier()
+#AB.fit(DRtrx, train_y);
+#yAB = AB.predict(DRtex);
+#pAB= AB.predict_proba(DRtex)[:,1]
+#print("\nADABOOST")
+#print("Confusion Matrix:\n",confusion_matrix(test_y,yAB))
+##err = clusteringResults(yAB,test_y,"ADABOOST")
+#
+## SUPERVISED: K-NEAREST NEIGHBORS
+#NN = KNeighborsClassifier(n_neighbors=20);
+#NN.fit(DRtrx,train_y)
+#yNN = NN.predict(DRtex)
+#pNN= NN.predict_proba(DRtex)[:,1]
+#print("k-Nearest-Neighbors Classifier")
+#print("\nConfusion Matrix:\n",confusion_matrix(test_y,yNN))
+##err = clusteringResults(yNN,test_y,"K-NEAREST-NEIGHBORS CLASSIFIER")
+#
+## SUPERVISED: LINEAR DISCRIMINANT ANALYSIS
+#LD = LinearDiscriminantAnalysis(solver='lsqr')
+#LD.fit(DRtrx, train_y)
+#yLD = LD.predict(DRtex)
+#pLD= LD.predict_proba(DRtex)[:,1]
+#print("\nLinear Discriminant Analysis")
+#print("Confusion Matrix:\n",confusion_matrix(test_y,yLD))
+##err = clusteringResults(yLD,test_y,"LINEAR DISCRIMINANT ANALYSIS")
+#
+## SUPERVISED: NAIVE BAYES
+#GN = GaussianNB()
+#GN.fit(DRtrx, train_y)
+#yGN = GN.predict(DRtex)
+#pGN= GN.predict_proba(DRtex)[:,1]
+#print("\nNaive Bayes")
+#print("Confusion Matrix:\n",confusion_matrix(test_y,yGN))
+##err = clusteringResults(yGN,test_y,"NAIVE BAYES")
+#
+############################################
+###############DEEP SUPERVISED##############
+############################################
+
+# SUPERVISED: MULTILAYER PERCEPTRON
+MP = MLPClassifier(hidden_layer_sizes=(100,100,100,10,10,10,10), alpha=.75, max_iter=1000000000, activation="relu")
+MP.fit(DRtrx, train_y)
+yMP = MP.predict(DRtex)
+pMP = MP.predict_proba(DRtex)[:,1]
+print("\nDeep MLP")
+print("Confusion Matrix:\n",confusion_matrix(test_y,yMP))
+
+### SUPERVISED: CONVNET
+#CN = CNNClassifier(train_M.shape[-1])
+#print("Training CNN... ")
+#CN.fit(train_M, train_y, batch_size=100, epochs=50, verbose=1)
+#print("        ...done.")
+#pCN = CN.predict(test_M, batch_size=10,verbose=1).flatten()
+##print("\nDeep CNN")
+##print("Confusion Matrix:\n",confusion_matrix(test_y,yCN))
+#
+#print("\n\n")
+############################################
+###############ANALYSIS#####################
+############################################
+
+#plt.figure()
+#outputs = pLR, pSV, pGS, pRF, pAB, pLD, pGN, pMP, pCN, pCN*pMP#,pNN
+#titles  = "LOGISTIC REGRESSION","SVM","GAUSSIAN KERNEL SVM","RANDOM FOREST","ADABOOST","LINEAR DISCRIMINANT ANALYSIS","NAIVE BAYES","MULTILAYER PERCEPTRON","CONVOLUTIONAL NN","DEEP ENSEMBLE"#,"k-NEAREST NEIGHBORS"
+#for title,output in zip(titles,outputs):
+#    #cm = confusion_matrix(test_y,output)
+#    #tp,fp = cm[1,1]/(cm[1,1]+cm[0,1]), cm[0,1]/(cm[0,0]+cm[1,0])
+#    #print(title,"\nConfusion:\n",cm,"\n")
+#    #plt.scatter(fp,tp)
+#    rc = roc_curve(test_y,output)
+#    plt.plot(rc[0],rc[1])
+#plt.legend(titles)
+#plt.plot((0,1),(0,1),'--k')
+
+
+plt.figure()
+wid=[5,10,50,100,500]
+# SUPERVISED: MULTILAYER PERCEPTRON
+for w in wid:
+    print(w)
+    CN = CNNClassifier(train_M.shape[-1])
+    CN.fit(train_M, train_y, batch_size=100, epochs=50, verbose=1)
+    pMP = MP.predict_proba(DRtex)[:,1]
+    rc = roc_curve(test_y,pMP)
+    plt.plot(rc[0],rc[1])
+plt.legend(wid)
+plt.plot((0,1),(0,1),'--k')
+
+
+# PLOT ROC curve with all the methods.
+plt.show()
+
