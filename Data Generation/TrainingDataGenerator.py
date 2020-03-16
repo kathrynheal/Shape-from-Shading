@@ -25,8 +25,8 @@ prefix = "~/Dropbox/Research/Experiments/"
 myuniquetime = ''.join([str(random.randint(0,9)) for i in range(6)])
 print(myuniquetime)
 
-nIvects = 10
-npoints = 10
+nIvects = 40
+npoints = 40
 
 ab   = sampS2p(nIvects)[:,:2]
 cde  = sampR3p(nIvects)
