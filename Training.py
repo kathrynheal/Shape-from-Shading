@@ -47,29 +47,8 @@ tf.reset_default_graph()
 ############################################
 #HYPERPARAMETER DEFINITION
 
-##NETWORK PARAMS
-numIters = 100000    #np.floor(1e2).astype(int)
-stepsize = .001 #.001
-#depth_h = 0        ##don't change this! there are a bunch of dependencies below
-width_h = 15#50         #truly this needs to be about 500
-width_g = 25#25
-depth_g = 2
-batch_size = 100   #int(len(X)/10)
-runtype="ONESTEP"
-iterprintinterval = max(1,np.ceil(numIters/100))
-animate_on  = True
-plots_on    = True
-log_on      = True
-Adamb1 = .99       #for TF optimizer. default term 0.99
-
-##DATA PARAMS
-toyopt = 0
-subset = True
-size0 = 10000
-ttfrac = 0.98
-codeis="_TOY"
-uniquetime = "Synth/"#"036051_small" #"036051_large"   #"367616"#"998128"
-prefix = "";            #"Dropbox/Research/Experiments/" # change this depending on whether you're running from command line, or from within the mathematica gui
+from General_Parameters import *
+from Training_Parameters import *
 
 uniquenum = str(time())
 print("\nRun #: ",uniquenum,"\n")
