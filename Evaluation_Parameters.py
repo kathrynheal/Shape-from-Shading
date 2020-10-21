@@ -1,31 +1,50 @@
-"""This gets read by Training.py"""
-
-import numpy as np
+"""This gets read by Evaluate.py"""
 
 
-##NETWORK PARAMS
-numIters = np.floor(1e5).astype(int)  # 1e4
-stepsize = .05 # .01 for size0=40000, w_h=50,w_g=25,d_g=25
-#depth_h = 0  # don't change this! there are a bunch of dependencies below
-width_h = 50  # 50         #truly this needs to be about 500
-width_g = 25  # 25
-depth_g = 1
-batch_size = 10000
-runtype = "ONESTEP"
-iterprintinterval = max(1,np.ceil(numIters/100))
-animate_on  = True
-plots_on    = False
-log_on      = True
-Adamb1 = .99  # for TF optimizer. default term 0.99
-ws_on, ws_dir = False, "1585068292.6331022"  # warm_start for network
+import os
 
-##DATA PARAMS
-toyopt = 0  # 0 is real case, 3 is a good toy case
-subset = True
-size0  = 400
-ttfrac = 0.96
-codeis = "_TOY"
-uniquetime = "all"
-# "Synth/" #"036051_small" #"036051_large" #"367616"#"998128"
-prefix = "";
-    #"Dropbox/Research/Experiments/" # change this depending on whether you're running from command line, or from within the mathematica gui
+modelname   = "1580752072.4233093"   #"1572314742.3791122" #   #"1569212026.0217707" #"1569258849.5705116"
+iteration   = "9900"                 #"49500"              #   #"49500"#"3300"#
+noisevar    = "0_010"
+
+
+directoryin = str(os.getcwd()+"/Data/Synth")
+#directoryin = str(os.getcwd()+"/Data/Perfect/from_036051")             ##GenerateSynthData.nb
+#directoryin = str(os.getcwd()+"/Data/Noise_"+noisevar+"/from_036051")
+    ##GenerateSynthData.nb
+#directoryin = str(os.getcwd()+"/Data/MultiPixel/MultiPixel")
+    ##NOT MULTI LIGHTS.
+    ##MultiPixel.nb
+#directoryin = str(os.getcwd()+"/Data/YUP/YUP")
+    ##RealDataProcessing.nb
+#directoryin = str(os.getcwd()+"/Data/Real/Real")
+    ##RealDataProcessing.nb
+#directoryin = str(os.getcwd()+"/Data/testme/testme")
+    ##RealDataProcessing.nb
+#directoryin = str(os.getcwd()+"/Data/please/please")
+    ##RealDataProcessing.nb
+#directoryin = str(os.getcwd()+"/Data/realreal/realreal")
+    ##RealDataProcessing.nb
+print("\n\ndataset: ",directoryin)
+
+
+nbhd_gr     = 10                   #40 is good
+nbhd_sz     = 1                    #2 is good
+if directoryin == str(os.getcwd()+"/Data/Noise_"+noisevar+"/from_036051"):
+    thisf = 0  #single fixed surface.    #<4 required.
+else:
+    thisf = 0
+noiseon     = False
+printmore   = False
+printmore2  = False
+printmore3  = False
+plotson     = False #cumulative & pairwise plots
+plotson0    = False #variety plots
+plotsonc    = False #coloring plots
+finalpaper  = False
+allplotsoff = False
+
+lights      = ["1","2","3","4"]
+print("lights: ",lights,"\n\n")
+
+wsz = 1
