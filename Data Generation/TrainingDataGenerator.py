@@ -1,32 +1,29 @@
 
+"""This is a barebones generator that does the important parts of GenerateTrainData.nb. THIS IS MEANT TO FEED INTO TRAINING.PY"""
 
+import matplotlib, sys, os, warnings, random
 
-## this is a barebones generator that does the important parts of GenerateTrainData.nb
-## THIS IS MEANT TO FEED INTO TRAINING.PY
-
-import matplotlib, ast, sys, time, os, socket, warnings
-from Utilities3 import *
-from Utilities2 import *
 sys.path.append('/Users/Heal/Dropbox/Research/Experiments/Git/')
-from Utilities1 import *
-warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.simplefilter(action='ignore', category=RuntimeWarning)
+sys.path.insert(1, os.path.join(sys.path[0], 'Utilities'))
+from Utilities_General import *
+from Utilities_Model import *
+from Utilities_TDG import *
+
+from DataGen_Parameters import *
+
 import numpy as np
 from numpy.matlib import repmat
-np.set_printoptions(suppress=True)
-from time import time
-import random
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+np.set_printoptions(suppress=True)
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
 prefix = "~/Dropbox/Research/Experiments/"
 
 myuniquetime = ''.join([str(random.randint(0,9)) for i in range(6)])
 print(myuniquetime)
-
-nIvects = 40
-npoints = 40
 
 ab   = sampS2p(nIvects)[:,:2]
 cde  = sampR3p(nIvects)
@@ -55,12 +52,9 @@ np.savetxt("Data/F_"+myuniquetime+".csv", Fvec, delimiter=",")
 np.savetxt("Data/I_"+myuniquetime+".csv", Ivec, delimiter=",")
 np.savetxt("Data/C_"+myuniquetime+".csv", Cvec, delimiter=",")
 
-
-
-
 #print("\nMY CDE:    \n",mycde)
 #print("\nTRUE CDE:  \n",cde)
-#
+
 #fig = plt.figure()
 #ax = fig.add_subplot(111, projection='3d')
 #[ax.scatter(mycde[i,:,0],mycde[i,:,1],mycde[i,:,2]) for i in range(nIvects)]
