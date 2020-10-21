@@ -1,0 +1,5 @@
+Data/
+Progress*.txt
+TrainingOutput/
+posgraphs/
+__pycache__/
