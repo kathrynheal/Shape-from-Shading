@@ -16,7 +16,7 @@ warnings.simplefilter(action='ignore', category=RuntimeWarning)
 #####################################################################################
 
 
-def evalKZs(fI,addargs=[]):
+def evalKZs(fI, addargs=[]):
     
     if len(fI.ravel()) == 11:  # this is for evaluation toward sanity checks
         c,d,e = fI[2:5]
@@ -47,11 +47,11 @@ def solveKZs(ab,Ivec):
     return sols
 
 
-def sampS2p(npoints):
+def sampS2p(npoints, params):
     vec = np.random.randn(3, npoints)
     vec /= norm(vec, axis=0)
     vec = vec/vec[2]
-    return np.transpose(vec)/10
+    return np.transpose(vec)/params
     
     
 def coneMember(cde):
@@ -59,10 +59,10 @@ def coneMember(cde):
     return c*e-d**2>0 and c+e>0
 
 
-def sampR3p(npoints):
-    vec = np.random.uniform(-10,10,(3,1))*0
+def sampR3p(npoints, params):
+    vec = np.random.uniform(-1*params,params,(3,1))*0
     while len(vec[0])<npoints+1:
-        new = np.random.uniform(-10,10,(3,1))
+        new = np.random.uniform(-1*params,params,(3,1))
         if coneMember(new):
             vec = np.append(vec,new,axis=1)
     return np.transpose(vec[:,1:])

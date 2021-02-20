@@ -55,7 +55,7 @@ def WriteTrainingOutputs(uniquenum,paramsIn):
                 "\nDepth of g:   ",
                 "\nWidth of g:   ",
                 "\nTest/Train ratio:   ",
-                "\ntoyopt:   ",
+                "\ndataset_id:   ",
                 "\nsubset:   ",
                 "\nsize0:   ",
                 "\nAdam B1:   "]
@@ -79,7 +79,7 @@ def PrintParams(uniquenum,paramsIn):
             "Depth of g:   ",
             "Width of g:   ",
             "Test/Train ratio:   ",
-            "toyopt:   ",
+            "dataset_id:   ",
             "subset:   ",
             "size0:   ",
             "Adam B1:   "]
@@ -141,52 +141,46 @@ def isdiverging(yo_): #this usually doesn't get flagged when using AdamOptimizer
 #####################################################################################
 
 
-def loaddata(toyopt,size0,subset,uniquetime,startind):
-
-    #if dataset is bigger than 10 this is a good idea.
-    if toyopt==1:
-        #toy1, random
-        print("Data is Toy Problem 1")
-        X = np.random.randint(10,size=(size0,2))
-        I = np.random.randint(10,size=(size0,6))
-        Y = np.random.randint(10,size=(size0,3))
-        toysave(I,X,Y)
-    elif toyopt==2: #stepsize=1e-3
-        print("Data is Toy Problem 2")
-        X = np.random.uniform(1,4,size=(size0,3))
-        I = np.random.uniform(1,4,size=(size0,2))
-        Y = np.array([[x,x+i,x*i] for x,i in zip(np.sum(I,axis=1),np.sum(I,axis=1))])
-        toysave(I,X,Y)
-    elif toyopt==3: #stepsize=1e-2
-        print("Data is Toy Problem 3")
-        rn = 1;
-        X, I = np.mgrid[-rn:(rn):10j, -rn:(rn):10j]
-        X = X.flatten().reshape((X.shape[0]*X.shape[1],1))
-        I = I.flatten().reshape((I.shape[0]*I.shape[1],1))
-        Y = 10*I*X+1
-        toysave(I,X,Y)
-    elif toyopt==0 or toyopt==5:#then use real data!!!!
-        if toyopt==0:
-            print("Data is /all*")
-            ListI,Listf = parsedata()
-            sn = int(Listf.shape[1]/5)
-            ListI = np.concatenate(np.asarray([repmat(l,sn,1) for l in ListI]))
-            Listf = np.concatenate(Listf.reshape(Listf.shape[0],sn,5))
-        elif toyopt==5:
-            print("Data is /Synth/")
-            i = os.getcwd()+"/Data/Synth/I.csv"
-            f = os.getcwd()+"/Data/Synth/F.csv"
-            ListI = np.asarray([[float(g) for g in h.split(',')] for h in np.loadtxt(i,dtype='str')])
-            Listf = np.asarray([[float(g) for g in h.split(',')] for h in np.loadtxt(f,dtype='str')])
-        if subset:
-            subnum=size0
-            I = ListI[startind:(startind+subnum)]
-            X = Listf[startind:(startind+subnum),:2]
-            Y = Listf[startind:(startind+subnum),2:]
-        else:
-            I = ListI
-            X = Listf[:,:2]
-            Y = Listf[:,2:]
+def loaddata(dataset_id,size0,subset,uniquetime,startind):
+    if dataset_id==0:
+        print("Data is /all*")
+        print("For Training Purposes.")
+        ListI,Listf = parsedata()
+        print(ListI.shape,Listf.shape)
+        sn = int(Listf.shape[1]/5)
+        ListI = np.concatenate(np.asarray([repmat(l, sn, 1) for l in ListI]))
+        Listf = np.concatenate(Listf.reshape(Listf.shape[0], sn, 5))
+    elif dataset_id==1:
+        print("Data is /Synth/. This is the same f, eval at different L's.")
+        print("Uncalibrated Photometric Stereo.")
+        i = os.getcwd()+"/Data/Synth/I.csv"
+        f = os.getcwd()+"/Data/Synth/F.csv"
+        ListI = np.asarray([[float(g) for g in h.split(',')] for h in np.loadtxt(i,dtype='str')])
+        Listf = np.asarray([[float(g) for g in h.split(',')] for h in np.loadtxt(f,dtype='str')])
+    elif dataset_id==2:
+        print("Data is /MultiPixel/. This is the same f, eval at different pixels.")
+        print("Co-Quadratic Stereo.")
+        i = os.getcwd()+"/Data/MultiPixel/I.csv"
+        f = os.getcwd()+"/Data/MultiPixel/F.csv"
+        px = os.getcwd()+"/Data/MultiPixel/px.csv"
+        ListI = np.asarray([[float(g) for g in h.split(',')] for h in np.loadtxt(i,dtype='str')])
+        Listf = np.asarray([[float(g) for g in h.split(',')] for h in np.loadtxt(f,dtype='str')])
+        Listpx = np.asarray([[float(g) for g in h.split(',')] for h in np.loadtxt(px,dtype='str')])
+        ## Apply multipixel linear transforms to I before compressing.
+        for k in range(4):
+            mpxR  = np.identity(6)
+            mpxR[1, 3:5] = -Listpx[k]
+            mpxR[2, 4:6] = -Listpx[k]
+            ListI[k] = np.dot(mpxR, ListI[k])
+    if subset:
+        subnum=size0
+        I = ListI[startind:(startind+subnum)]
+        X = Listf[startind:(startind+subnum),:2]
+        Y = Listf[startind:(startind+subnum),2:]
+    else:
+        I = ListI
+        X = Listf[:,:2]
+        Y = Listf[:,2:]
     return I,X,Y
     
     
@@ -195,31 +189,10 @@ def loaddata(toyopt,size0,subset,uniquetime,startind):
 
 
 def parsedata():
-
-    #print("\n\nThe Current Working Directory:\n ",os.getcwd(),"\n\n")
-
-    #scrape all files
-    HoldI,Holdf = [],[]
-    filepath = os.getcwd()
-    os.chdir(filepath + "/Data")
-    print("Reading Training Data:")
-    GlobI = np.sort(glob.glob("I_*"))
-    Globf = np.sort(glob.glob("F_*"))
-    for f,i in zip(Globf, GlobI):
-        print(f,i)
-        ListI = np.asarray([[float(g) for g in h.split(',')] for h in np.loadtxt(i,dtype='str')])
-        Listf = np.asarray([[float(g) for g in h.split(',')] for h in np.loadtxt(f,dtype='str')])
-        print(Listf.shape)
-        if HoldI == []:
-            HoldI = [ListI]
-            Holdf = [Listf]
-        else:
-            HoldI = np.append(HoldI,[ListI],axis=1)
-            Holdf = np.append(Holdf,[Listf],axis=1)
-        print(np.array(Holdf).shape)
-    ListI = np.concatenate(HoldI)
-    Listf = np.concatenate(Holdf)
-    os.chdir(filepath)
+#    ListC = np.load(os.path.join(os.getcwd(), "Data/allC.npy"))
+    ListI = np.load(os.path.join(os.getcwd(), "Data/allI.npy")).astype(np.float32)
+    Listf = np.load(os.path.join(os.getcwd(), "Data/allF.npy")).astype(np.float32)
+    print(ListI.shape,Listf.shape)
     return ListI,Listf
 
 
@@ -227,7 +200,7 @@ def parsedata():
 #####################################################################################
 
 
-def splittraintest(X,Y,I,ttfrac,toyopt,subset):
+def splittraintest(X,Y,I,ttfrac,dataset_id,subset):
 
     #set train fraction & shuffle dataset
     #np.random.seed()#(707)
@@ -393,7 +366,7 @@ def get_x(real_x,nbhd_sz,nbhd_gr):
 #####################################################################################
     
     
-def exploit_symmetries(real_I,real_f,info=[],verbose=False):
+def exploit_symmetries(real_I, real_f, info=[], verbose=False):
     """exploit symmetries to reduce I,f dimensions.
     takes a single pair of vectors at a time.
     if verbose==True, print whether it satisfies the KZs at that step."""
@@ -543,130 +516,121 @@ def set_unit(opt):
 def valid(f):
     """mask out the NaNs -- set them to zero."""
     return np.nan_to_num(np.multiply(M, f))
+    
+    
+#####################################################################################
+#####################################################################################
+
+def moving_average(mylist, N=100):
+    """Just for plotting the loss functions in training!"""
+    cumsum, moving_aves = [0], []
+    for i, x in enumerate(mylist, 1):
+        cumsum.append(cumsum[i-1] + x)
+        if i>=N:
+            moving_ave = (cumsum[i] - cumsum[i-N])/N
+            moving_aves.append(moving_ave)
+    return moving_aves
 
 #####################################################################################
 #####################################################################################
 
 def normalize(A):
     return (A-np.mean(A,axis=0))/np.var(A,axis=0)
+    
+#####################################################################################
+#####################################################################################
+
+def plot_cluster(F0,Y0,Y_):
+    [print("satisfies KZs 0:       ", np.round(evalKZs(   np.concatenate([F0[t], I0[t]])    ),15)) for t in range(30)]
+    plotcluster = np.real(Y0)
+    fig8 = plt.figure()
+    axL9 = fig8.add_subplot("110", projection='3d')
+    axL9.scatter3D(plotcluster[:,0],plotcluster[:,1],plotcluster[:,2],s=2)
+    plt.title("Uncompressed, *unscaled* variety samples.")
+    axL9.set_xlabel("fxx")
+    axL9.set_ylabel("fxy")
+    axL9.set_zlabel("fyy")
+    axL9.autoscale()
+    plt.show()
+    return
    
+#####################################################################################
+#####################################################################################
+
+def optional_pruning(p1, p2, I0, F0):
+    if p1:
+        ##optional: could trim F0,I0 to remove too-large c,d,e points and ease training
+        if verbose:
+            print("...pruning for small-ish Y before compressing...")
+        prunethresh = 100000#10
+        prunecde = np.arange(len(I0))[np.amax(np.abs(F0[:,2:]),axis=1)<prunethresh]
+        I0 = I0[prunecde]
+        F0 = F0[prunecde]
+    if p2:
+        ##optional: for some reason, some of these don't solve the KZs. Remove them.
+        if verbose:
+            print("...pruning for KZ=0...")
+        KZgoodnessthreshold=5
+        goodinds = np.asarray(
+            np.where(
+                [np.max(
+                    np.abs(
+                        evalKZs(
+                            np.concatenate([f,i])
+                        )
+                    )
+                )<=KZgoodnessthreshold for f,i in zip(F0,I0)]
+            )
+        )
+        I0 = I0[goodinds][0]
+        F0 = F0[goodinds][0]
+    return I0, F0
+
 #####################################################################################
 #####################################################################################
 
 from Utilities_PDGSDG import *
 from Utilities_TDG import *
 
-def DataLoadingMain(starttime,ttfrac,toyopt,size0,subset,uniquetime):
+"""BIG loading function"""
+def DataLoadingMain(starttime,ttfrac,dataset_id,size0,subset,uniquetime,loadflags):
 
-    verbose  = False
-    fastbeta = False  # this is buggy but might speed up computation when it works
-
-    pruning1 = False
-    pruning2 = False
-    pruning3 = True
+    verbose, pruning1, pruning2, pruning3 = loadflags
 
     startind = 0
-    I0,X0,Y0 = loaddata(toyopt,size0,subset,uniquetime,startind) ##KH FUNCTION
+    I0,X0,Y0 = loaddata(dataset_id,size0,subset,uniquetime,startind) ##KH FUNCTION
     F0 = np.concatenate([X0,Y0],axis=1)
-#    [print("satisfies KZs 0:       ", np.round(evalKZs(   np.concatenate([F0[t], I0[t]])    ),15)) for t in range(30)]
+    print(I0.shape,X0.shape, Y0.shape, F0.shape)
 
-    plotcluster = np.real(Y0)  # np.real(Y_[np.abs(np.real(Y_[:,1])-2)>1])
-#    print("\n",plotcluster)
-    fig8 = plt.figure()
-    axL9 = fig8.add_subplot("110", projection='3d')
-    axL9.scatter3D(plotcluster[:,0],plotcluster[:,1],plotcluster[:,2],s=2)
-    plt.title("Uncompressed variety samples.")
-    axL9.set_xlabel("fxx")
-    axL9.set_ylabel("fxy")
-    axL9.set_zlabel("fyy")
-    axL9.autoscale()
-#    plt.show()
+    if dataset_id==0:
+        I0, F0 = optional_pruning(pruning1, pruning2, I0, F0)
 
-    if toyopt == 0 or toyopt == 5: #if NOT test data, do symmetry stuff
-        if toyopt ==5:
-            pruning1,pruning2,pruning3 = False,False,False
-        if pruning1:
-            ##optional: could trim F0,I0 to remove too-large c,d,e points and ease training
-            if verbose:
-                print("...pruning for small-ish Y before compressing...")
-            prunethresh = 100000#10
-            prunecde = np.arange(len(I0))[np.amax(np.abs(F0[:,2:]),axis=1)<prunethresh]
-            I0 = I0[prunecde]
-            F0 = F0[prunecde]
-        if pruning2:
-            ##optional: for some reason, some of these don't solve the KZs. Remove them.
-            if verbose:
-                print("...pruning for KZ=0...")
-            KZgoodnessthreshold=5
-            goodinds = np.asarray(
-                np.where(
-                    [np.max(
-                        np.abs(
-                            evalKZs(
-                                np.concatenate([f,i])
-                            )
-                        )
-                    )<=KZgoodnessthreshold for f,i in zip(F0,I0)]
-                )
-            )
-            I0 = I0[goodinds][0]
-            F0 = F0[goodinds][0]
+    ############################################
+    ############################################
+    #COMPRESSION OF I-VECTORS
 
-        ############################################
+    IFT0 = np.stack([exploit_symmetries(i,f,[],False) for i,f in zip(I0,F0)])
+    I,F,info0 = np.stack(IFT0[:,0]),np.stack(IFT0[:,1]),np.stack(IFT0[:,2])
+    X,Y = F[:,:2], F[:,2:]
+    I = I[:,3:5]  # Project onto the nontrivial dimensions of I
 
-        ############################################
-        #COMPRESSION OF I-VECTORS
+    if verbose:
+        print(I.shape,F.shape," I,F shapes")
+        print("Finished compressing data.\n")
 
-        if fastbeta:    #Compression of I vectors -- new as of 01/2020.
-                        #Being smarter about computations.
-            #group into distinct I's
-            uniqueIs = np.unique([tuple(row) for row in I0],axis=0)
-            indsuqIs = np.array([np.where((I0==elem).all(axis=1)) for elem in uniqueIs])
-            justuniqueinds = [k[0][0] for k in indsuqIs]
-            if verbose:
-                print(I0.shape,F0.shape," I,F shapes")
-                print("finished grouping data\n")
-
-            IFT0 = np.stack([exploit_symmetries(I0[t],F0[t],[],False) for t in justuniqueinds])
-            Iout = np.stack(IFT0[:,0])
-            Fout = np.stack(IFT0[:,1])
-            Ic = np.stack(IFT0[:,0])
-            info0 = np.stack(IFT0[:,2])
-            I = np.concatenate(np.array([repmat(Ic[t],len(indsuqIs[t][0]),1) for t in range(len(info0))]))
-
-            #TODO: Fix this chunk.
-            T = np.concatenate(np.array([repmat(info0[t],len(indsuqIs[t][0]),1) for t in range(len(info0))])) ##not being used yet. to test reconstr make sure (I,T) --> I0.
-            newordering = np.concatenate(np.concatenate(indsuqIs))
-            F = np.array([exploit_symmetries(I0[newordering[t]], F0[newordering[t]], T[t], False)[1] for t in range(len(T))])
-            X,Y = F[:,:2],F[:,2:]
-            print("F",F)
-            
-        else: #slower but safer way to compress I
-            IFT0 = np.stack([exploit_symmetries(i,f,[],False) for i,f in zip(I0,F0)])
-            I,F,info0 = np.stack(IFT0[:,0]),np.stack(IFT0[:,1]),np.stack(IFT0[:,2])
-            X,Y = F[:,:2],F[:,2:]
-        
-        #Project onto the nontrivial dimensions of I
-        I = I[:,3:5]
-
+    if pruning3 and dataset_id==0:
         if verbose:
-            print(I.shape,F.shape," I,F shapes")
-            print("finished compressing data\n")
+            print("...pruning for smallish Y after compressing...")
+        prunethresh = 5
+        prunecde = np.arange(len(I))[np.amax(np.abs(Y),axis=1)<prunethresh]
+        I, X, Y = I[prunecde], X[prunecde], Y[prunecde]
 
-        if pruning3:
-            if verbose:
-                print("...pruning for smallish Y after compressing...")
-            prunethresh = 5
-            prunecde = np.arange(len(I))[np.amax(np.abs(Y),axis=1)<prunethresh]
-            I = I[prunecde]
-            X = X[prunecde]
-            Y = Y[prunecde]
+    uniqueIs = np.unique([tuple(row) for row in I],axis=0)
+    indsuqIs = np.array([np.where((I==elem).all(axis=1)) for elem in uniqueIs])
+    justuniqueinds = [k[0][0] for k in indsuqIs]
+    if verbose:
+        print("Number of unique I vectors, after compression and pruning: ",len(indsuqIs))
 
-        uniqueIs = np.unique([tuple(row) for row in I],axis=0)
-        indsuqIs = np.array([np.where((I==elem).all(axis=1)) for elem in uniqueIs])
-        justuniqueinds = [k[0][0] for k in indsuqIs]
-        if verbose:
-            print("Number of unique I vectors, after compression and pruning: ",len(indsuqIs))
         plotcluster = [np.real(Y[t[0].ravel()]) for t in indsuqIs]
         fig8 = plt.figure()
         axL9 = fig8.add_subplot("110", projection='3d')
@@ -677,34 +641,21 @@ def DataLoadingMain(starttime,ttfrac,toyopt,size0,subset,uniquetime):
         axL9.set_ylabel("fxy")
         axL9.set_zlabel("fyy")
         axL9.autoscale()
-#        plt.show()
 
-        scaletodiscriminate=10
-        Y = Y*scaletodiscriminate
-
-        X = np.round(X,decimals=15)
-        Y = np.round(Y,decimals=15)
-        I = np.round(I,decimals=15)
-    else: #if toy data
-        scaletodiscriminate=1
-        I = I0
-        X = X0
-        Y = Y0
-
+    roundto = 15
+    X, Y, I = np.round(X,decimals=roundto), np.round(Y,decimals=roundto), np.round(I,decimals=roundto)
 
     ############################################
     ############################################
     #DATA PROCESSING FOR NETWORK
-#    X,I = normalize(X), normalize(I)
-    X,Y,I, X_,Y_,I_, X_t,Y_t,I_t, idx0,train_stop,test_stop = splittraintest(X,Y,I,ttfrac,toyopt,subset)
-    
-    datatime = time.time()
-    #print("\nData preprocessing time: ", datatime - starttime)
+    #    X,I = normalize(X), normalize(I)
+    X,Y,I, X_,Y_,I_, X_t,Y_t,I_t, idx0,train_stop,test_stop = splittraintest(X,Y,I,ttfrac,dataset_id,subset)
 
+    datatime = time.time()
     dataout   = X ,  Y ,  I
     dataout_  = X_,  Y_,  I_
     dataout_t = X_t, Y_t, I_t
-    etcout    = idx0,train_stop,test_stop,datatime,scaletodiscriminate,info0
+    etcout    = idx0, train_stop, test_stop, datatime, info0
 
-    return dataout,dataout_,dataout_t,etcout
+    return dataout, dataout_, dataout_t, etcout
 

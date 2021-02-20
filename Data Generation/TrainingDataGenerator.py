@@ -3,34 +3,29 @@
 
 import matplotlib, sys, os, warnings, random
 
-sys.path.append('/Users/Heal/Dropbox/Research/Experiments/Git/')
+sys.path.append('/Users/Heal/Dropbox/Research/Experiments/Fresh-Git/')
+sys.path.append('/Users/Heal/Dropbox/Research/Experiments/Fresh-Git/Utilities')
 sys.path.insert(1, os.path.join(sys.path[0], 'Utilities'))
-from Utilities_General import *
-from Utilities_Model import *
 from Utilities_TDG import *
-
 from DataGen_Parameters import *
 
 import numpy as np
-from numpy.matlib import repmat
 import multiprocessing as mp
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 np.set_printoptions(suppress=True)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
-
-prefix = "~/Dropbox/Research/Experiments/"
+warnings.simplefilter(action='ignore', category=UserWarning)
 
 myuniquetime = ''.join([str(random.randint(0,9)) for i in range(6)])
 print(myuniquetime)
 
-ab   = sampS2p(nIvects)[:,:2]
-cde  = sampR3p(nIvects)
-l    = sampS2p(nIvects)
+ab   = sampS2p(nIvects, S2_scale)[:,:2]
+cde  = sampR3p(nIvects, R3_scale)
+l    = sampS2p(nIvects, S2_scale)
 Ivec = calcIFromABCDE(l,ab,cde,(0,0))
 
-abguess = sampS2p(npoints)[:,:2]
+abguess = sampS2p(npoints, S2_scale)[:,:2]
 pool = mp.Pool(mp.cpu_count())
 
 mycde = np.zeros((nIvects,npoints,3),dtype=np.float64)
@@ -42,19 +37,18 @@ pool.close()
 Fvec = np.concatenate((np.asarray([abguess for i in range(nIvects)]),mycde),axis=2)
 Fvec = np.asarray([np.concatenate(f) for f in Fvec])
 
-Cvec = np.asarray([[evalKZs(np.concatenate([Fvec[i,(5*j):(5*j+5)],Ivec[i]]),[]) for j in range(npoints)] for i in range(nIvects)]) #confidence scores
+Cvec = np.asarray([[evalKZs(np.concatenate([Fvec[i, (5*j):(5*j+5)], Ivec[i]]), []) for j in range(npoints)] for i in range(nIvects)]) #confidence scores
 
 print("Fvec shape: ",Fvec.shape) # nIvects x npoints*5,    matrix
 print("Ivec shape: ",Ivec.shape) # nIvects x 6,            matrix
 print("Cvec shape: ",Cvec.shape) # nIvects x npoints,      matrix
 
-np.savetxt("Data/F_"+myuniquetime+".csv", Fvec, delimiter=",")
-np.savetxt("Data/I_"+myuniquetime+".csv", Ivec, delimiter=",")
-np.savetxt("Data/C_"+myuniquetime+".csv", Cvec, delimiter=",")
+np.savetxt(os.path.join(os.getcwd(), "Data/F_"+myuniquetime+".csv"), Fvec, delimiter=",")
+np.savetxt(os.path.join(os.getcwd(), "Data/I_"+myuniquetime+".csv"), Ivec, delimiter=",")
+np.savetxt(os.path.join(os.getcwd(), "Data/C_"+myuniquetime+".csv"), Cvec, delimiter=",")
 
 #print("\nMY CDE:    \n",mycde)
 #print("\nTRUE CDE:  \n",cde)
-
 #fig = plt.figure()
 #ax = fig.add_subplot(111, projection='3d')
 #[ax.scatter(mycde[i,:,0],mycde[i,:,1],mycde[i,:,2]) for i in range(nIvects)]
